@@ -1,0 +1,62 @@
+# frozen_string_literal: true
+
+require "rake/clean"
+require "bundler/gem_helper"
+require "fileutils"
+require "minitar"
+require "open-uri"
+require "os"
+require "zlib"
+
+Bundler::GemHelper.install_tasks
+
+VERSION = Bundler::GemHelper.gemspec.version.to_s.gsub(%r{\.pre$}, "")
+
+SOURCE_URL = URI("https://github.com/grpc-ecosystem/grpc-gateway/archive/v1.14.4.tar.gz")
+
+PROTO_FILES_REGEX = %r{/((?:protoc-gen-swagger/options|google(?:/[^/]+))/[^/]+\.proto)$}.freeze
+
+CLEAN.include("build")
+CLOBBER.include("proto", "generated")
+
+def download(url:, target:)
+  puts "Downloading '#{url}'"
+
+  unless File.exist?(target)
+    FileUtils.mkpath(File.dirname(target))
+    File.write(target, url.open.read)
+  end
+end
+
+desc "Download grpc-tools source code"
+task "download" do
+  # Download source archive
+  download(url: SOURCE_URL, target: "build/download/source.tar.gz")
+
+  # Extract proto files to correct location in proto directory
+  Minitar::Reader.each_entry(Zlib::GzipReader.new(File.open("build/download/source.tar.gz", "rb"))) do |entry|
+    if PROTO_FILES_REGEX =~ entry.full_name
+      target_file = File.join("proto", Regexp.last_match(1))
+      puts "Extracting '#{entry.full_name}' to '#{target_file}'"
+      FileUtils.mkpath(File.dirname(target_file))
+      File.write(target_file, entry.read)
+    end
+  end
+end
+
+task "generate" => "download" do
+  FileUtils.mkpath("generated/proto")
+
+  command = %w[
+    grpc_tools_ruby_protoc
+    --plugin=grpc_tools_ruby_protoc_plugin
+    --ruby_out=generated/proto
+    --proto_path=proto
+  ]
+
+  proto_files = Dir["**/*.proto", base: "proto"]
+
+  sh(*command, *proto_files)
+end
+
+task "build" => "generate"

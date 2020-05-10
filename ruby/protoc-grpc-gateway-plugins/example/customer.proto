@@ -1,0 +1,43 @@
+
+syntax = "proto3";
+
+package grpc.gateway.examples.customer;
+
+import "google/api/annotations.proto";
+
+message CustomerId {
+    int64 id = 1;
+ }
+ 
+ message Customer {
+    int64 id = 1;
+    string first_name = 2; 
+    string last_name = 3; 
+}
+
+service CustomerService {
+    rpc CreateCustomer(Customer) returns (Customer) {
+        option (google.api.http) = {
+			post: "/v1/example/customer"
+		};
+    }
+
+    rpc GetCustomer(CustomerId) returns (Customer) {
+        option (google.api.http) = {
+			get: "/v1/example/customer/{id}"
+		};
+    }
+
+    rpc UpdateCustomer(Customer) returns (Customer) {
+        option (google.api.http) = {
+            patch: "/v1/example/customer/{id}"
+            body: "*"
+		};
+    }
+
+    rpc DeleteCustomer(CustomerId) returns (CustomerId) {
+        option (google.api.http) = {
+            delete: "/v1/example/test/{id}"
+		};
+    }
+}

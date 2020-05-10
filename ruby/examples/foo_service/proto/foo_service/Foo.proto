@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package foo_service;
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+	info: {
+		title: "GRPC Gateway Example"
+		version: "1.0.0"
+		contact: {
+			name: "Jochen Seeber"
+			url: "https://github.com/jochenseeber/grpc-gateway-tools"
+		};
+		license: {
+			name: "BSD-3-Clause"
+			url: "https://github.com/jochenseeber/grpc-gateway-tools/blob/master/LICENSE.txt"
+		};
+	}
+	schemes: HTTP
+	schemes: HTTPS
+	consumes: "application/json"
+	produces: "application/json"
+	responses: {
+		key: "403"
+		value: {
+			description: "The user does not have permission to access the resource."
+		}
+	};
+	responses: {
+		key: "404"
+		value: {
+			description: "The requested resource does not exist."
+		}
+	}
+};
+
+// Identifies a Foo
+message FooId {
+    // Identifier of the Foo
+    int64 id = 1;
+}
+
+// The Foo :-)
+message FooResource {
+    // Identifier of the Foo
+    int64 id = 1;
+
+    // What would aFoo be without a Bar?
+    string bar = 2;
+}
+
+// List of Foos
+message FooList {
+    // Foos
+    repeated FooResource foos = 1;
+}
+
+// Manage Foos
+service Foo {
+    // Get a Foo by its ID
+    rpc getFoo(FooId) returns (FooResource) {
+        option (google.api.http) = {
+            get: "/foos/{id}"
+        };
+        option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+			responses: {
+                key: "200"
+                value: {
+                    description: "The requested Foo"
+                }
+			}
+		};
+    }
+
+    // Create a new Foo
+    rpc createFoo(FooResource) returns (FooResource) {
+        option (google.api.http) = {
+            post: "/foos"
+        };
+        option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+			responses: {
+                key: "200"
+                value: {
+                    description: "The created Foo"
+                }
+			}
+		};
+    }
+   
+    // Update an existing Foo
+    rpc updateFoo(FooResource) returns (FooResource) {
+        option (google.api.http) = {
+            patch: "/foos/{id}"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+			responses: {
+                key: "200"
+                value: {
+                    description: "The updated Foo"
+                }
+			}
+		};
+    }
+
+    // Delete an existing Foo
+    rpc deleteFoo(FooId) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/foos/{id}"
+        };
+        option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+			responses: {
+                key: "204"
+                value: {
+                    description: "The Foo was deleted successfully"
+                }
+			}
+		};
+    }
+
+    // List all Foos
+    rpc listFoos(google.protobuf.Empty) returns (FooList) {
+        option (google.api.http) = {
+            get: "/foos"
+        };
+        option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+			responses: {
+                key: "200"
+                value: {
+                    description: "The list of available Foos"
+                }
+			}
+		};
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveTimeout": 5000,
+    "git.ignoreLimitWarning": true,
+    "ruby.useBundler": false,
+    "ruby.useLanguageServer": true,
+    "ruby.lint": {
+        "rubocop": {
+            "useBundler": false
+        }
+    },
+    "files.associations": {
+        "*.gemspec": "ruby",
+        "gemfile": "ruby",
+        "rakefile": "ruby"
+    },
+}

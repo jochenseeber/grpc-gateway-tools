@@ -1,0 +1,39 @@
+# frozen_string_literal: true
+
+require "rake/clean"
+require "bundler/gem_helper"
+require "fileutils"
+require "minitar"
+require "open-uri"
+require "os"
+
+Bundler::GemHelper.install_tasks
+
+VERSION = Bundler::GemHelper.gemspec.version.to_s.gsub(%r{\.pre$}, "")
+
+BASE_URL = URI("https://github.com/grpc-ecosystem/grpc-gateway/releases/download/v#{VERSION}/")
+PLUGINS = %w[protoc-gen-swagger protoc-gen-grpc-gateway].freeze
+ARCHS = %w[darwin-x86_64 linux-x86_64 windows-x86_64.exe].freeze
+BINARIES = PLUGINS.product(ARCHS).map { |p, a| [URI.join(BASE_URL, "#{p}-v#{VERSION}-#{a}"), "generated/bin/#{p}-#{a}"] }.to_h
+
+CLEAN.include("build")
+CLOBBER.include("generated")
+
+def download(url:, target:)
+  puts "Downloading '#{url}'"
+
+  unless File.exist?(target)
+    FileUtils.mkpath(File.dirname(target))
+    File.write(target, url.open.read)
+  end
+end
+
+desc "Download plugin binaries"
+task "download" do
+  BINARIES.each do |url, target_file|
+    download(url: url, target: target_file)
+    File.chmod(0o755, target_file) if %r{-(darwin|linux)-x86_64} =~ url.path
+  end
+end
+
+task "build" => "download"

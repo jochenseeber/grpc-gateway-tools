@@ -1,0 +1,68 @@
+plugins {
+    id "com.google.protobuf" version "0.8.12"
+    id "de.undercouch.download" version "4.0.4"
+    id "java-library"
+    id "maven-publish"
+}
+
+Map<String, Object> metadata = new groovy.json.JsonSlurper().parse(new File(projectDir, "../../project.json"))
+
+group = "me.seeber.grpc.gateway"
+version = metadata["version"].replaceFirst("-pre\$", "-SNAPSHOT")
+
+def gatewayVersion = version.replaceFirst("-SNAPSHOT\$", "")
+def protobufVersion = metadata["protobuf"]["version"]
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
+    testImplementation "junit:junit:4.12"
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+}
+
+task downloadSourceArchive(type: Download) {
+    src "https://github.com/grpc-ecosystem/grpc-gateway/archive/v${gatewayVersion}.tar.gz"
+    dest new File(buildDir, "download/source.tar.gz")
+    onlyIfModified true
+}
+
+task untarProtoFiles(type: Copy) {
+    def downloadTask = tasks.downloadSourceArchive
+    def sourceFiles =  tarTree(downloadTask.dest)
+
+    dependsOn(downloadTask)
+
+    includeEmptyDirs = false
+    into "${projectDir}/src/main/proto"
+
+    from(sourceFiles) {
+        include "grpc-gateway-*/protoc-gen-swagger/**/*.proto"
+        eachFile { f -> f.path = f.path.replaceFirst("^grpc-gateway-[\\d\\.]+/", "") }
+    }
+    
+    from(sourceFiles) {
+        include "grpc-gateway-*/third_party/googleapis/**/*.proto"
+        eachFile { f -> f.path = f.path.replaceFirst("^grpc-gateway-[\\d\\.]+/third_party/googleapis/", "") }
+    }
+}
+
+tasks.withType(com.google.protobuf.gradle.GenerateProtoTask).all {
+    dependsOn tasks.untarProtoFiles
+}
+
+publishing {
+    publications {
+        myLibrary(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
