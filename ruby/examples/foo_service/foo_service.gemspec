@@ -3,13 +3,14 @@
 require "json"
 require "pathname"
 
-metadata = JSON.parse(File.read("#{__dir__}/../../../project.json"))
-
 Gem::Specification.new do |spec|
   raise "RubyGems 2.0 or newer is required." unless spec.respond_to?(:metadata)
 
+  metadata = JSON.parse(File.read("#{__dir__}/../../../project.json"))
+  version = ->(component) { metadata.fetch(component).fetch("version").gsub("-", ".") }
+
   spec.name = "foo_service"
-  spec.version = metadata.fetch("version").gsub(%r{-([a-z]+)}i, ".\\1")
+  spec.version = "1.0.0"
   spec.summary = "GRPC Gateway Tools example project"
   spec.required_ruby_version = ">= 2.6.0"
 
@@ -24,12 +25,13 @@ Gem::Specification.new do |spec|
   spec.files = Dir[
     "*.md",
     "proto/**/*.proto",
-    "generated/proto/**/*.rb",
+    "bundled/proto/**/*.rb",
   ]
 
-  spec.require_paths = %w[generated/proto proto]
+  spec.require_paths = %w[bundled/proto proto]
 
-  spec.add_development_dependency "grpc-tools", ">= #{metadata.fetch("grpc").fetch("version")}"
-  spec.add_development_dependency "protoc-grpc-gateway-plugins", "= #{spec.version}"
+  spec.add_development_dependency "grpc-tools", "= #{version.call("grpc")}"
+  spec.add_development_dependency "protoc-grpc-gateway-plugins", "= #{version.call("grpc-gateway")}"
+  spec.add_development_dependency "protoc-tools", "= #{version.call("protobuf")}"
   spec.add_development_dependency "rake", "~> 13.0"
 end

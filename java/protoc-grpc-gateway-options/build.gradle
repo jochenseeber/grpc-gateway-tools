@@ -8,10 +8,10 @@ plugins {
 Map<String, Object> metadata = new groovy.json.JsonSlurper().parse(new File(projectDir, "../../project.json"))
 
 group = "me.seeber.grpc.gateway"
-version = metadata["version"].replaceFirst("-pre\$", "-SNAPSHOT")
+version = metadata["grpc-gateway"]["version"].replaceFirst("-pre\$", "-SNAPSHOT")
 
-def gatewayVersion = version.replaceFirst("-SNAPSHOT\$", "")
-def protobufVersion = metadata["protobuf"]["version"]
+def gatewayVersion = metadata["grpc-gateway"]["version"].replaceFirst("-pre\$", "")
+def protobufVersion = metadata["protobuf"]["version"].replaceFirst("-pre\$", "")
 
 repositories {
     jcenter()

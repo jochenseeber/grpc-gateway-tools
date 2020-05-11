@@ -1,29 +1,26 @@
 PATH
   remote: .
   specs:
-    protoc-grpc-gateway-options (1.14.5.pre)
+    protoc-tools (3.11.4.pre)
+      docile (~> 1.3)
       os (~> 1.1)
 
 GEM
   remote: https://rubygems.org/
   specs:
+    ae (1.8.2)
+      ansi
+    ansi (1.5.0)
+    archive-zip (0.12.0)
+      io-like (~> 0.3.0)
     ast (2.4.0)
     docile (1.3.2)
-    grpc-tools (1.28.0)
-    hashie (4.1.0)
-    minitar (0.8)
-    minitar-cli (0.8)
-      minitar (~> 0.8.0)
-      powerbar (~> 1.0)
+    io-like (0.3.1)
+    minitest (5.14.0)
     os (1.1.0)
     parallel (1.19.1)
     parser (2.7.1.2)
       ast (~> 2.4.0)
-    powerbar (1.0.18)
-      hashie (>= 1.1.0)
-    protoc-tools (3.11.4.pre)
-      docile (~> 1.3)
-      os (~> 1.1)
     rainbow (3.0.0)
     rexml (3.2.4)
     rubocop (0.83.0)
@@ -35,19 +32,16 @@ GEM
       unicode-display_width (>= 1.4.0, < 2.0)
     ruby-progressbar (1.10.1)
     unicode-display_width (1.7.0)
-    zlib (1.1.0)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  grpc-tools (= 1.28.0)
-  minitar (~> 0.8)
-  minitar-cli (~> 0.8)
-  protoc-grpc-gateway-options!
-  protoc-tools (= 3.11.4.pre)
+  ae (~> 1.8)
+  archive-zip (~> 0.12)
+  minitest (~> 5.14)
+  protoc-tools!
   rubocop (~> 0.82)
-  zlib (~> 1.1)
 
 BUNDLED WITH
    2.1.4

@@ -4,63 +4,55 @@ require "bundler/setup"
 
 require "bundler/gem_helper"
 require "fileutils"
+require "grpc/gateway/protoc/grpc_gateway_output"
+require "grpc/gateway/protoc/swagger_output"
+require "protoc/tools/protoc/output/grpc_ruby_output"
+require "protoc/tools/protoc/output/ruby_output"
 require "rake/clean"
 
-CLOBBER << "generated"
+CLEAN.include("build")
+CLOBBER.include("bundled", "generated", "pkg")
 
 Bundler::GemHelper.install_tasks
 
-desc "Generate all code and documentation from proto files"
-task "generate" => %w[proto:generate swagger:generate gateway:generate]
-
-task "build" => "generate"
-
-def proto_path
-  Gem.loaded_specs.values.reject do |gem|
-    Bundler::GemHelper.gemspec.name == gem.name
-  end.flat_map(&:full_require_paths).reject do |d|
-    Dir.glob("**/*.proto", base: d).empty?
-  end
-end
-
 PROTO_FILES = Dir["**/*.proto", base: "proto"]
-
-PROTOC = %W[grpc_tools_ruby_protoc --proto_path=proto:#{proto_path.join(":")}].freeze
 
 namespace "proto" do
   desc "Generate Ruby code from proto files"
   task "generate" do
-    command = PROTOC + %W[
-      --plugin=#{Gem.bindir}/grpc_tools_ruby_protoc_plugin
-      --ruby_out=generated/proto
-    ]
-    #    --grpc-ruby_out=generated/proto
-    FileUtils.mkpath("generated/proto")
-    sh(*command, *PROTO_FILES)
+    protoc = Protoc::Tools::Protoc::Compiler.new do
+      ruby_out
+      grpc_ruby_out
+    end
+    protoc.run(base_dirs: "proto", files: PROTO_FILES)
   end
 end
 
 namespace "swagger" do
   desc "Generate Swagger documentation from proto files"
   task "generate" do
-    sh "which protoc-gen-swagger"
-    command = PROTOC + %W[
-      --plugin=#{Gem.bindir}/protoc-gen-swagger
-      --swagger_out=generated/swagger
-    ]
-    FileUtils.mkpath("generated/swagger")
-    sh(*command, *PROTO_FILES)
+    protoc = Protoc::Tools::Protoc::Compiler.new do
+      swagger_out
+    end
+    protoc.run(base_dirs: "proto", files: PROTO_FILES)
   end
 end
 
 namespace "gateway" do
   desc "Generate GRPC gateway code from proto files"
   task "generate" do
-    command = PROTOC + %W[
-      --plugin=#{Gem.bindir}/protoc-gen-grpc-gateway
-      --grpc-gateway_out=generated/gateway
-    ]
-    FileUtils.mkpath("generated/gateway")
-    sh(*command, *PROTO_FILES)
+    protoc = Protoc::Tools::Protoc::Compiler.new do
+      grpc_gateway_out
+    end
+    protoc.run(base_dirs: "proto", files: PROTO_FILES)
   end
 end
+
+file "LICENSE.txt" => "../../../LICENSE.txt" do |file|
+  FileUtils.cp(file.prerequisites.first, file.name)
+end
+
+desc "Generate all code and documentation from proto files"
+task "generate" => %w[proto:generate swagger:generate gateway:generate]
+
+task "build" => %w[generate LICENSE.txt]

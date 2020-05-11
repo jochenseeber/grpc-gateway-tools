@@ -9,9 +9,9 @@ Gem::Specification.new do |spec|
   metadata = JSON.parse(File.read("#{__dir__}/../../project.json"))
   version = ->(component) { metadata.fetch(component).fetch("version").gsub("-", ".") }
 
-  spec.name = "protoc-grpc-gateway-options"
-  spec.version = version.call("grpc-gateway")
-  spec.summary = "GRPC Gateway options for protoc (https://github.com/grpc-ecosystem/grpc-gateway)"
+  spec.name = "protoc-tools"
+  spec.version = version.call("protobuf")
+  spec.summary = "Protobuf Compiler (protoc) binaries"
   spec.required_ruby_version = ">= 2.6.0"
 
   spec.licenses = ["BSD-3-Clause"]
@@ -24,18 +24,22 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir[
     "*.md",
+    "*.txt",
+    "bundled/bin/*",
     "bundled/proto/**/*.proto",
-    "generated/proto/**/*.rb",
+    "cmd/*",
+    "lib/**/*.rb",
   ]
 
-  spec.require_paths = %w[bundled/proto generated/proto]
+  spec.bindir = "cmd"
+  spec.executables = spec.files.grep(%r{^cmd/}) { |f| File.basename(f) }
+  spec.require_paths = %w[lib bundled/proto]
 
+  spec.add_dependency "docile", "~> 1.3"
   spec.add_dependency "os", "~> 1.1"
 
-  spec.add_development_dependency "grpc-tools", "= #{version.call("grpc")}"
-  spec.add_development_dependency "minitar", "~> 0.8"
-  spec.add_development_dependency "minitar-cli", "~> 0.8"
-  spec.add_development_dependency "protoc-tools", "= #{version.call("protobuf")}"
+  spec.add_development_dependency "ae", "~> 1.8"
+  spec.add_development_dependency "archive-zip", "~> 0.12"
+  spec.add_development_dependency "minitest", "~> 5.14"
   spec.add_development_dependency "rubocop", "~> 0.82"
-  spec.add_development_dependency "zlib", "~> 1.1"
 end

@@ -1,42 +1,41 @@
 # frozen_string_literal: true
 
-require "rake/clean"
 require "bundler/gem_helper"
 require "fileutils"
 require "minitar"
 require "open-uri"
 require "os"
+require "protoc/tools/protoc/output/ruby_output"
+require "rake/clean"
+require "tempfile"
 require "zlib"
+
+CLEAN.include("build")
+CLOBBER.include("bundled", "generated", "pkg")
 
 Bundler::GemHelper.install_tasks
 
-VERSION = Bundler::GemHelper.gemspec.version.to_s.gsub(%r{\.pre$}, "")
+GATEWAY_VERSION = Bundler::GemHelper.gemspec.version.to_s.to_s[%r{^\d(?:\.\d+)+}]
 
-SOURCE_URL = URI("https://github.com/grpc-ecosystem/grpc-gateway/archive/v1.14.4.tar.gz")
+SOURCE_URL = URI("https://github.com/grpc-ecosystem/grpc-gateway/archive/v#{GATEWAY_VERSION}.tar.gz")
 
 PROTO_FILES_REGEX = %r{/((?:protoc-gen-swagger/options|google(?:/[^/]+))/[^/]+\.proto)$}.freeze
 
-CLEAN.include("build")
-CLOBBER.include("proto", "generated")
-
-def download(url:, target:)
-  puts "Downloading '#{url}'"
-
-  unless File.exist?(target)
-    FileUtils.mkpath(File.dirname(target))
-    File.write(target, url.open.read)
-  end
-end
-
 desc "Download grpc-tools source code"
 task "download" do
+  # Download grpc-gateway license
+  download(
+    source: "https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/v#{GATEWAY_VERSION}/LICENSE.txt",
+    target: "LICENSE-grpc-gateway.txt"
+  )
+
   # Download source archive
-  download(url: SOURCE_URL, target: "build/download/source.tar.gz")
+  download(source: SOURCE_URL, target: "build/download/source.tar.gz")
 
   # Extract proto files to correct location in proto directory
   Minitar::Reader.each_entry(Zlib::GzipReader.new(File.open("build/download/source.tar.gz", "rb"))) do |entry|
     if PROTO_FILES_REGEX =~ entry.full_name
-      target_file = File.join("proto", Regexp.last_match(1))
+      target_file = File.join("bundled/proto", Regexp.last_match(1))
       puts "Extracting '#{entry.full_name}' to '#{target_file}'"
       FileUtils.mkpath(File.dirname(target_file))
       File.write(target_file, entry.read)
@@ -45,18 +44,35 @@ task "download" do
 end
 
 task "generate" => "download" do
-  FileUtils.mkpath("generated/proto")
-
-  command = %w[
-    grpc_tools_ruby_protoc
-    --plugin=grpc_tools_ruby_protoc_plugin
-    --ruby_out=generated/proto
-    --proto_path=proto
-  ]
-
-  proto_files = Dir["**/*.proto", base: "proto"]
-
-  sh(*command, *proto_files)
+  proto_files = Dir["**/*.proto", base: "bundled/proto"]
+  protoc = Protoc::Tools::Protoc::Compiler.new do
+    ruby_out
+  end
+  protoc.run(base_dirs: "bundled/proto", files: proto_files)
 end
 
-task "build" => "generate"
+file "LICENSE.txt" => "../../LICENSE.txt" do |file|
+  FileUtils.cp(file.prerequisites.first, file.name)
+end
+
+task "build" => %w[generate LICENSE.txt]
+
+def download(source:, target:)
+  unless File.exist?(target)
+    puts "Downloading '#{source}' into '#{target}'"
+
+    temp_file = Tempfile.new("download")
+
+    begin
+      File.write(temp_file.path, URI(source).open.read)
+      temp_file.close
+
+      if !File.exist?(target) || (Digest::SHA256.file(temp_file.path) != Digest::SHA256.file(target))
+        FileUtils.mkpath(File.dirname(target))
+        FileUtils.mv(temp_file, target)
+      end
+    ensure
+      temp_file.close!
+    end
+  end
+end

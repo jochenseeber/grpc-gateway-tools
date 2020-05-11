@@ -24,5 +24,5 @@ end
 
 ext = RbConfig::CONFIG["EXEEXT"]
 
-prog = File.expand_path("../generated/bin/#{File.basename(__FILE__)}-#{host}-#{cpu}#{ext}", __dir__)
+prog = File.expand_path("../bundled/bin/#{File.basename(__FILE__)}-#{host}-#{cpu}#{ext}", __dir__)
 exec(prog, *ARGV)

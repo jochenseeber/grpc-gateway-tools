@@ -1,0 +1,4 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+exec("grpc_tools_ruby_protoc_plugin", *ARGV)
