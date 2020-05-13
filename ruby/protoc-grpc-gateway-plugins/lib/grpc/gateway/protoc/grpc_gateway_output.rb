@@ -13,7 +13,7 @@ module Grpc
         end
 
         def default_plugin
-          Gem.loaded_specs.fetch("protoc-grpc-gateway-plugins").bin_file("protoc-gen-grpc-gateway")
+          Pathname(Gem.loaded_specs.fetch("protoc-grpc-gateway-plugins").bin_file("protoc-gen-grpc-gateway"))
         end
       end
     end

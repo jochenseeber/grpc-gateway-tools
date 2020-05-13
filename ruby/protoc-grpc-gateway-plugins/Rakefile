@@ -48,7 +48,7 @@ end
 
 task "build" => %w[download LICENSE.txt]
 
-Rake::TestTask.new do |t|
+Rake::TestTask.new("test" => "download") do |t|
   t.libs = %w[lib test]
   t.test_files = Dir["test/**/*_test.rb"]
 end

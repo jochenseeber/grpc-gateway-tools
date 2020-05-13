@@ -19,7 +19,7 @@ module Protoc
 
           it "has the correct version number" do
             output = Protoc::Tools::Protoc::Compiler.output_classes.fetch("grpc-gateway").new
-            stdout, = Open3.capture2(output.plugin, "--version")
+            stdout, = Open3.capture2(output.plugin.to_s, "--version")
             version = stdout[%r{\d+(?:\.\d+)+}]
             version.assert == Gem.root_spec.version.to_s[%r{^\d+(?:\.\d+)+}]
           end

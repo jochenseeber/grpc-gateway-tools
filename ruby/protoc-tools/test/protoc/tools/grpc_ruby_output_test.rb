@@ -18,7 +18,7 @@ module Protoc
         it "can be created" do
           output_class = Protoc::Compiler.output_classes.fetch("grpc-ruby")
           output = output_class.new
-          output.target_dir.assert == "generated/proto"
+          output.target_dir.assert == Pathname("generated/proto")
           output.to_arguments.assert.any? { |a| a.start_with?("--grpc-ruby_out=") }
         end
 
@@ -32,7 +32,7 @@ module Protoc
 
           output = compiler.outputs.find { |o| o.class.type == "grpc-ruby" }
           output.assert.not.nil?
-          output.target_dir.assert == "generated/proto_ruby"
+          output.target_dir.assert == Pathname("generated/proto_ruby")
         end
       end
     end

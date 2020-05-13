@@ -20,6 +20,11 @@ task "install" => "build" do
   build(rake: "install:local", gradle: "publishToMavenLocal")
 end
 
+desc "Test all projects"
+task "test" do
+  build(rake: "test", gradle: "test")
+end
+
 desc "Clean all projects"
 task "clean" do
   build(rake: "clobber", gradle: "clean")

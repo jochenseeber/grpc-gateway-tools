@@ -18,11 +18,11 @@ module Protoc
         end
 
         it "can be configured" do
-          compiler = Protoc::Compiler.new do
+          protoc = Protoc::Compiler.new do
             include_imports true
           end
 
-          compiler.include_imports.assert == true
+          protoc.include_imports.assert == true
         end
       end
     end

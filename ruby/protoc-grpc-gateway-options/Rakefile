@@ -5,8 +5,9 @@ require "fileutils"
 require "minitar"
 require "open-uri"
 require "os"
-require "protoc/tools/protoc/output/ruby_output"
+require "protoc/tools/protoc_task"
 require "rake/clean"
+require "rake/testtask"
 require "tempfile"
 require "zlib"
 
@@ -43,12 +44,12 @@ task "download" do
   end
 end
 
+desc "Generate Ruby code from proto files"
 task "generate" => "download" do
-  proto_files = Dir["**/*.proto", base: "bundled/proto"]
-  protoc = Protoc::Tools::Protoc::Compiler.new do
-    ruby_out
+  Protoc::Tools::ProtocTask.new(name: "generate") do
+    protoc { ruby_out; grpc_ruby_out; proto_dir "bundled/proto" }
+    proto_files Dir["**/*.proto", base: "bundled/proto"]
   end
-  protoc.run(base_dirs: "bundled/proto", files: proto_files)
 end
 
 file "LICENSE.txt" => "../../LICENSE.txt" do |file|
@@ -56,6 +57,11 @@ file "LICENSE.txt" => "../../LICENSE.txt" do |file|
 end
 
 task "build" => %w[generate LICENSE.txt]
+
+Rake::TestTask.new("test" => "generate") do |t|
+  t.libs = %w[lib test]
+  t.test_files = Dir["test/**/*_test.rb"]
+end
 
 def download(source:, target:)
   unless File.exist?(target)

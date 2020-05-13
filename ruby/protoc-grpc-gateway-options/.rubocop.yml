@@ -57,6 +57,9 @@ Style/Next:
 Style/RegexpLiteral:
   EnforcedStyle: percent_r
 
+Style/Semicolon:
+  AllowAsExpressionSeparator: true
+
 Style/StringLiterals:
   EnforcedStyle: double_quotes
 

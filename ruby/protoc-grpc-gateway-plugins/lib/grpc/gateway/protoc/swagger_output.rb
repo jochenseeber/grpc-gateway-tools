@@ -13,7 +13,7 @@ module Grpc
         end
 
         def default_plugin
-          Gem.loaded_specs.fetch("protoc-grpc-gateway-plugins").bin_file("protoc-gen-swagger")
+          Pathname(Gem.loaded_specs.fetch("protoc-grpc-gateway-plugins").bin_file("protoc-gen-swagger"))
         end
       end
     end

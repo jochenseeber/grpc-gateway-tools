@@ -6,6 +6,27 @@
 	],
 	"settings": {
 		"git.ignoreLimitWarning": true,
-		"ruby.useLanguageServer": true
+		"ruby.useLanguageServer": true,
+		"ruby.useBundler": false,
+		"ruby.lint": {
+			"rubocop": {
+				"useBundler": false
+			}
+		},
+		"protoc": {
+			"path": "${workspaceRoot}/ruby/protoc-tools/cmd/protoc",
+			"compile_on_save": false,
+			"options": [
+				"--proto_path=${workspaceFolder}/ruby/protoc-tools/bundled/proto",
+				"--proto_path=${workspaceFolder}/ruby/protoc-grpc-gateway-options/bundled/proto",
+				"--proto_path=${workspaceFolder}/ruby/examples/foo_service/proto"
+			]
+		},
+		"editor.formatOnSave": true,
+		"files.associations": {
+			"*.gemspec": "ruby",
+			"gemfile": "ruby",
+			"rakefile": "ruby"
+		}
 	}
 }

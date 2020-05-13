@@ -18,20 +18,20 @@ module Protoc
         it "can be created" do
           output_class = Protoc::Compiler.output_classes.fetch("ruby")
           output = output_class.new
-          output.target_dir.assert == "generated/proto"
+          output.target_dir.assert == Pathname("generated/proto")
           output.to_arguments.assert.any? { |a| a.start_with?("--ruby_out=") }
         end
 
         it "can be configured" do
-          compiler = Protoc::Compiler.new do
+          protoc = Protoc::Compiler.new do
             ruby_out do
               target_dir "generated/proto_ruby"
             end
           end
 
-          output = compiler.outputs.find { |o| o.class.type == "ruby" }
+          output = protoc.outputs.find { |o| o.class.type == "ruby" }
           output.assert.not.nil?
-          output.target_dir.assert == "generated/proto_ruby"
+          output.target_dir.assert == Pathname("generated/proto_ruby")
         end
       end
     end
