@@ -43,8 +43,13 @@ module Protoc
 
             method_name = :"#{type.gsub("-", "_")}_out".to_sym
 
-            Compiler.define_method(method_name) do |**method_parameters, &method_block|
-              output_handler = output_class.new(**method_parameters, &method_block)
+            Compiler.define_method(method_name) do |*method_parameters, **method_options, &method_block|
+              output_handler = if method_options.empty?
+                output_class.new(*method_parameters, &method_block)
+              else
+                output_class.new(*method_parameters, **method_options, &method_block)
+              end
+
               Docile.dsl_eval(output_handler, &method_block) if method_block
               output output_handler
             end

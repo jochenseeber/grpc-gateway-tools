@@ -122,6 +122,8 @@ PROJECTS.each do |project|
         build_target(project: project, rake: "clobber", gradle: "clean", trace: trace)
       when "update_versions"
         update_versions(suffix: suffix, trace: trace)
+      when "actions"
+        system("act", exception: true)
       else
         raise ArgumentError, "Unknown command '#{command}'"
     end
