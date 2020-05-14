@@ -24,14 +24,13 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir[
     "*.md",
-    "bundled/**/*",
-    "cmd/*",
+    "*.txt",
+    "cmd/**/*",
     "lib/**/*.rb",
   ]
 
   spec.bindir = "cmd"
-  spec.executables = spec.files.grep(%r{^cmd/}) { |f| File.basename(f) }
-  spec.require_paths = %w[lib]
+  spec.executables = spec.files.filter { |f| File.dirname(f) == "cmd" && File.file?(f) }.map { |f| File.basename(f) }
 
   spec.add_dependency "os", "~> 1.1"
   spec.add_dependency "protoc-grpc-gateway-options", "= #{spec.version}"
@@ -42,6 +41,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "minitar-cli", "~> 0.8"
   spec.add_development_dependency "minitest", "~> 5.14"
   spec.add_development_dependency "protoc-tools", "= #{version.call("protobuf")}"
+  spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rubocop", "~> 0.82"
   spec.add_development_dependency "zlib", "~> 1.1"
 end

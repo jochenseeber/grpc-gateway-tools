@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-exec("grpc_tools_ruby_protoc_plugin", *ARGV)
+prog = File.join(Gem.bindir, "grpc_tools_ruby_protoc_plugin")
+exec(prog, *ARGV)

@@ -11,6 +11,8 @@ require "rake/testtask"
 require "tempfile"
 require "zlib"
 
+import "../rakelib/file_tools.rake"
+
 CLEAN.include("build")
 CLOBBER.include("bundled", "generated", "pkg")
 
@@ -25,29 +27,21 @@ PROTO_FILES_REGEX = %r{/((?:protoc-gen-swagger/options|google(?:/[^/]+))/[^/]+\.
 desc "Download grpc-tools source code"
 task "download" do
   # Download grpc-gateway license
-  download(
+  FileTools.download(
     source: "https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/v#{GATEWAY_VERSION}/LICENSE.txt",
     target: "LICENSE-grpc-gateway.txt"
   )
 
   # Download source archive
-  download(source: SOURCE_URL, target: "build/download/source.tar.gz")
-
-  # Extract proto files to correct location in proto directory
-  Minitar::Reader.each_entry(Zlib::GzipReader.new(File.open("build/download/source.tar.gz", "rb"))) do |entry|
-    if PROTO_FILES_REGEX =~ entry.full_name
-      target_file = File.join("bundled/proto", Regexp.last_match(1))
-      puts "Extracting '#{entry.full_name}' to '#{target_file}'"
-      FileUtils.mkpath(File.dirname(target_file))
-      File.write(target_file, entry.read)
-    end
+  FileTools.download_tar_archive(source: SOURCE_URL) do |entry|
+    File.join("bundled/proto", Regexp.last_match(1)) if PROTO_FILES_REGEX =~ entry.full_name
   end
 end
 
 desc "Generate Ruby code from proto files"
 task "generate" => "download" do
   Protoc::Tools::ProtocTask.new(name: "generate") do
-    protoc { ruby_out; grpc_ruby_out; proto_dir "bundled/proto" }
+    protoc { ruby_out; grpc_ruby_out; proto_dirs "bundled/proto" }
     proto_files Dir["**/*.proto", base: "bundled/proto"]
   end
 end
@@ -61,24 +55,4 @@ task "build" => %w[generate LICENSE.txt]
 Rake::TestTask.new("test" => "generate") do |t|
   t.libs = %w[lib test]
   t.test_files = Dir["test/**/*_test.rb"]
-end
-
-def download(source:, target:)
-  unless File.exist?(target)
-    puts "Downloading '#{source}' into '#{target}'"
-
-    temp_file = Tempfile.new("download")
-
-    begin
-      File.write(temp_file.path, URI(source).open.read)
-      temp_file.close
-
-      if !File.exist?(target) || (Digest::SHA256.file(temp_file.path) != Digest::SHA256.file(target))
-        FileUtils.mkpath(File.dirname(target))
-        FileUtils.mv(temp_file, target)
-      end
-    ensure
-      temp_file.close!
-    end
-  end
 end

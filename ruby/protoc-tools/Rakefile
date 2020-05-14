@@ -10,6 +10,8 @@ require "rake/clean"
 require "rake/testtask"
 require "tempfile"
 
+import "../rakelib/file_tools.rake"
+
 CLEAN.include("build")
 CLOBBER.include("bundled", "generated", "pkg")
 
@@ -19,43 +21,34 @@ PROTOC_VERSION = Bundler::GemHelper.gemspec.version.to_s[%r{^\d(?:\.\d+)+}]
 
 BASE_URL = URI("https://github.com/protocolbuffers/protobuf/releases/download/v#{PROTOC_VERSION}/")
 
-ARCHIVES = {
-  "protoc-#{PROTOC_VERSION}-linux-x86_64.zip" => "linux-x86_64",
-  "protoc-#{PROTOC_VERSION}-osx-x86_64.zip" => "darwin-x86_64",
-  "protoc-#{PROTOC_VERSION}-win64.zip" => "windows-x86_64",
-}.freeze
-
-PROTO_FILES_REGEX = %r{^include/(?<path>(?:[^/]+/)+[^/]+\.proto)$}.freeze
-BINARY_FILES_REGEX = %r{^bin/(?<path>(?:[^/]+/)+[^/]+)$}.freeze
-
 CLEAN.include("build")
-CLOBBER.include("bundled", "generated", "pkg")
+CLOBBER.include("bundled", "cmd/bundled", "generated", "pkg")
 
 desc "Download plugin binaries"
 task "download" do
   # Download protoc license
-  download(
+  FileTools.download(
     source: "https://raw.githubusercontent.com/protocolbuffers/protobuf/v#{PROTOC_VERSION}/LICENSE",
     target: "LICENSE-protoc.txt"
   )
 
-  # Download protoc binaries
-  ARCHIVES.each do |file_name, arch|
-    archive_file = "build/download/#{file_name}"
-    download(source: URI.join(BASE_URL, file_name), target: archive_file)
-
-    # Extract binaries and proto files to correct locations
-    Archive::Zip.open(archive_file) do |archive|
-      archive.each do |entry|
-        if entry.ftype == :file
-          if %r{^bin/(?<path>(?:[^/]+/)*[^/.]+)(?<ext>\.[^./]+)?$} =~ entry.zip_path
-            extract(source: entry, target: "bundled/bin/#{path}-#{arch}#{ext}")
-          elsif arch == "linux-x86_64" && %r{^include/(?<path>(?:[^/]+/)*[^/]+\.proto)$} =~ entry.zip_path
-            extract(source: entry, target: "bundled/proto/#{path}")
-          end
-        end
-      end
+  # Download protoc Linux binaries and proto files
+  FileTools.download_zip_archive(source: URI.join(BASE_URL, "protoc-#{PROTOC_VERSION}-linux-x86_64.zip")) do |entry|
+    if entry.zip_path == "bin/protoc"
+      "cmd/bundled/protoc-linux-x86_64"
+    elsif File.fnmatch?("include/**/*.proto", entry.zip_path)
+      "bundled/proto/#{entry.zip_path.delete_prefix("include/")}"
     end
+  end
+
+  # Download protoc MacOS binaries
+  FileTools.download_zip_archive(source: URI.join(BASE_URL, "protoc-#{PROTOC_VERSION}-osx-x86_64.zip")) do |entry|
+    "cmd/bundled/protoc-darwin-x86_64" if entry.zip_path == "bin/protoc"
+  end
+
+  # Download protoc Windows binaries
+  FileTools.download_zip_archive(source: URI.join(BASE_URL, "protoc-#{PROTOC_VERSION}-win64.zip")) do |entry|
+    "cmd/bundled/protoc-windows-x86_64.exe" if entry.zip_path == "bin/protoc.exe"
   end
 end
 
@@ -68,37 +61,4 @@ task "build" => %w[download LICENSE.txt]
 Rake::TestTask.new("test" => "download") do |t|
   t.libs = %w[lib test]
   t.test_files = Dir["test/**/*_test.rb"]
-end
-
-def download(source:, target:)
-  unless File.exist?(target)
-    puts "Downloading '#{source}' into '#{target}'"
-
-    temp_file = Tempfile.new("download")
-
-    begin
-      File.write(temp_file.path, URI(source).open.read)
-      temp_file.close
-
-      if !File.exist?(target) || (Digest::SHA256.file(temp_file.path) != Digest::SHA256.file(target))
-        FileUtils.mkpath(File.dirname(target))
-        FileUtils.mv(temp_file, target)
-      end
-    ensure
-      temp_file.close!
-    end
-  end
-end
-
-def copy(source:, target:)
-  if !File.exist(target) || (Digest::SHA256.file(source) != Digest::SHA256.file(target))
-    puts "Copying '#{source}' into '#{target}'"
-    FileUtils.cp(source, target)
-  end
-end
-
-def extract(source:, target:)
-  puts "Extracting '#{source.zip_path}' into '#{target}'"
-  FileUtils.mkpath(File.dirname(target))
-  source.extract(file_path: target, permissions: true, times: true)
 end

@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require "protoc/tools/protoc/compiler"
+require "protoc/tools/standard_extensions"
+
+using Protoc::Tools::StandardExtensions
 
 module Grpc
   module Gateway
@@ -13,7 +16,7 @@ module Grpc
         end
 
         def default_plugin
-          Pathname(Gem.loaded_specs.fetch("protoc-grpc-gateway-plugins").bin_file("protoc-gen-swagger"))
+          Gem.platform_bin_file(spec_name: "protoc-grpc-gateway-plugins", bin_name: "bundled/protoc-gen-swagger")
         end
       end
     end

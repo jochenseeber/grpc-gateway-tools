@@ -9,10 +9,12 @@ require "rake/clean"
 require "rake/testtask"
 require "tempfile"
 
-CLEAN.include("build")
-CLOBBER.include("bundled", "generated", "pkg")
+import "../rakelib/file_tools.rake"
 
 Bundler::GemHelper.install_tasks
+
+CLEAN.include("build")
+CLOBBER.include("bundled", "cmd/bundled", "generated", "pkg")
 
 GATEWAY_VERSION = Bundler::GemHelper.gemspec.version.to_s[%r{^\d(?:\.\d+)+}]
 
@@ -21,24 +23,27 @@ BASE_URL = URI("https://github.com/grpc-ecosystem/grpc-gateway/releases/download
 BINARIES = {
   "protoc-gen-grpc-gateway-v#{GATEWAY_VERSION}-darwin-x86_64" => "protoc-gen-grpc-gateway-darwin-x86_64",
   "protoc-gen-grpc-gateway-v#{GATEWAY_VERSION}-linux-x86_64" => "protoc-gen-grpc-gateway-linux-x86_64",
-  "protoc-gen-grpc-gateway.exe-v#{GATEWAY_VERSION}-windows-x86_64.exe" => "protoc-gen-grpc-gateway-windows-x86_64",
+  "protoc-gen-grpc-gateway.exe-v#{GATEWAY_VERSION}-windows-x86_64.exe" => "protoc-gen-grpc-gateway-windows-x86_64.exe",
   "protoc-gen-swagger-v#{GATEWAY_VERSION}-darwin-x86_64" => "protoc-gen-swagger-darwin-x86_64",
   "protoc-gen-swagger-v#{GATEWAY_VERSION}-linux-x86_64" => "protoc-gen-swagger-linux-x86_64",
-  "protoc-gen-swagger.exe-v#{GATEWAY_VERSION}-windows-x86_64.exe" => "protoc-gen-swagger-windows-x86_64",
+  "protoc-gen-swagger.exe-v#{GATEWAY_VERSION}-windows-x86_64.exe" => "protoc-gen-swagger-windows-x86_64.exe",
 }.freeze
 
 desc "Download plugin binaries"
 task "download" do
   # Download grpc-gateway license
-  download(
+  FileTools.download(
     source: "https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/v#{GATEWAY_VERSION}/LICENSE.txt",
     target: "LICENSE-grpc-gateway.txt"
   )
 
   # Download binaries
   BINARIES.each do |source_name, target_name|
-    download(source: URI.join(BASE_URL, source_name), target: "bundled/bin/#{target_name}")
-    File.chmod(0o755, "bundled/bin/#{target_name}") if %r{-(darwin|linux)-x86_64} =~ target_name
+    FileTools.download(
+      source: URI.join(BASE_URL, source_name),
+      target: "cmd/bundled/#{target_name}",
+      mode: %r{-(darwin|linux)-x86_64} =~ target_name ? 0o755 : nil
+    )
   end
 end
 
@@ -51,24 +56,4 @@ task "build" => %w[download LICENSE.txt]
 Rake::TestTask.new("test" => "download") do |t|
   t.libs = %w[lib test]
   t.test_files = Dir["test/**/*_test.rb"]
-end
-
-def download(source:, target:)
-  unless File.exist?(target)
-    puts "Downloading '#{source}' into '#{target}'"
-
-    temp_file = Tempfile.new("download")
-
-    begin
-      File.write(temp_file.path, URI(source).open.read)
-      temp_file.close
-
-      if !File.exist?(target) || (Digest::SHA256.file(temp_file.path) != Digest::SHA256.file(target))
-        FileUtils.mkpath(File.dirname(target))
-        FileUtils.mv(temp_file, target)
-      end
-    ensure
-      temp_file.close!
-    end
-  end
 end

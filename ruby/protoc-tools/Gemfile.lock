@@ -22,6 +22,7 @@ GEM
     parser (2.7.1.2)
       ast (~> 2.4.0)
     rainbow (3.0.0)
+    rake (13.0.1)
     rexml (3.2.4)
     rubocop (0.83.0)
       parallel (~> 1.10)
@@ -41,6 +42,7 @@ DEPENDENCIES
   archive-zip (~> 0.12)
   minitest (~> 5.14)
   protoc-tools!
+  rake (~> 13.0)
   rubocop (~> 0.82)
 
 BUNDLED WITH

@@ -3,5 +3,6 @@
 /.bundle/
 /build/
 /bundled/
+/cmd/bundled/
 /pkg/
 \#*\#

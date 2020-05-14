@@ -1,28 +1,9 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-$LOAD_PATH.append(File.join(__dir__), "lib")
+require "protoc/tools/standard_extensions"
 
-require "os"
+using Protoc::Tools::StandardExtensions
 
-host = if OS.osx?
-  "darwin"
-elsif OS.linux?
-  "linux"
-elsif OS.windows?
-  "windows"
-else
-  abort("No binary available on platform '#{OS.host_os}'")
-end
-
-cpu = case OS.host_cpu
-  when "x86_64"
-    "x86_64"
-  else
-    abort("No binary available for CPU  '#{OS.host_cpu}'")
-end
-
-ext = RbConfig::CONFIG["EXEEXT"]
-
-prog = File.expand_path("../bundled/bin/#{File.basename(__FILE__)}-#{host}-#{cpu}#{ext}", __dir__)
+prog = Gem.platform_bin_name(name: "#{__dir__}/bundled/protoc-gen-grpc-gateway")
 exec(prog, *ARGV)

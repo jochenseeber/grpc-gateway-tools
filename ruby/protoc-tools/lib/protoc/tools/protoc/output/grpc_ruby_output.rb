@@ -12,6 +12,10 @@ module Protoc
           def initialize
             super(target_dir: "generated/proto")
           end
+
+          def default_plugin
+            Pathname(Gem.bindir) / "grpc_tools_ruby_protoc_plugin"
+          end
         end
       end
     end

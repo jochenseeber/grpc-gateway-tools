@@ -26,7 +26,7 @@ The following RubyGems projects are provided
 Install all RubyGems locally and install all Java libraries into the Maven repository:
 
 ```bash
-rake install
+./build setup install
 ```
 
 ## Example

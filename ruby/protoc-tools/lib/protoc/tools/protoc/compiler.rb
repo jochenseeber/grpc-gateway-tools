@@ -98,10 +98,7 @@ module Protoc
         end
 
         def protoc_bin
-          @protoc_bin ||= begin
-            spec = Gem.loaded_specs.fetch("protoc-tools")
-            Pathname(spec.full_gem_path) / spec.bindir / "protoc"
-          end
+          Gem.platform_bin_file(spec_name: "protoc-tools", bin_name: "bundled/protoc")
         end
 
         def proto_path
@@ -132,7 +129,7 @@ module Protoc
           [
             protoc_bin.to_s,
             all_plugins.map { |p| "--plugin=#{p}" },
-            "--proto_path=#{(proto_dirs + proto_path).map(&:to_s).join(":")}",
+            "--proto_path=#{(proto_dirs + proto_path).map(&:to_s).join(File::PATH_SEPARATOR)}",
             descriptor_sets_in.if_present { |d| "--descriptor_set_in=#{d.map(&:to_s).join(",")}" },
             descriptor_set_out.if_present { |d| "--descriptor_set_out=#{d}" },
             include_imports.if_present("--include_imports"),

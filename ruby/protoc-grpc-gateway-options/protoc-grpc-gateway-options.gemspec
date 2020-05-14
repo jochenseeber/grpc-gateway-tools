@@ -36,6 +36,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "minitar", "~> 0.8"
   spec.add_development_dependency "minitar-cli", "~> 0.8"
   spec.add_development_dependency "protoc-tools", "= #{version.call("protobuf")}"
+  spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rubocop", "~> 0.82"
   spec.add_development_dependency "zlib", "~> 1.1"
 end

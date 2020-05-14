@@ -25,14 +25,14 @@ Gem::Specification.new do |spec|
   spec.files = Dir[
     "*.md",
     "*.txt",
-    "bundled/bin/*",
     "bundled/proto/**/*.proto",
-    "cmd/*",
+    "cmd/**/*",
     "lib/**/*.rb",
   ]
 
   spec.bindir = "cmd"
-  spec.executables = spec.files.grep(%r{^cmd/}) { |f| File.basename(f) }
+  spec.executables = spec.files.filter { |f| File.dirname(f) == "cmd" && File.file?(f) }.map { |f| File.basename(f) }
+
   spec.require_paths = %w[lib bundled/proto]
 
   spec.add_dependency "docile", "~> 1.3"
@@ -41,5 +41,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "ae", "~> 1.8"
   spec.add_development_dependency "archive-zip", "~> 0.12"
   spec.add_development_dependency "minitest", "~> 5.14"
+  spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rubocop", "~> 0.82"
 end

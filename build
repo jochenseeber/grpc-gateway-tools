@@ -1,0 +1,129 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "json"
+require "open-uri"
+require "optparse"
+
+PROJECTS = [
+  "java/protoc-grpc-gateway-options/build.gradle",
+  "ruby/protoc-tools/Rakefile",
+  "ruby/protoc-grpc-gateway-options/Rakefile",
+  "ruby/protoc-grpc-gateway-plugins/Rakefile"
+] + Dir["ruby/examples/**/Rakefile"]
+
+def update_project(build_file:)
+  Dir.chdir(File.dirname(build_file)) do
+    system("bundle update", exception: true)
+    system("rake install:local", exception: true)
+  end
+end
+
+def update_versions(suffix: nil)
+  config = {}
+
+  config[:config] = JSON.parse(File.read("project.json"))
+  config[:suffix] = suffix
+
+  puts "Please enter your Github personal access token:"
+  config[:access_token] = STDIN.gets.chomp
+
+  update_version(project: "protocolbuffers/protobuf", **config) && changed = true
+  update_version(project: "grpc/grpc", **config, suffix: nil) && changed = true
+  update_version(project: "grpc-ecosystem/grpc-gateway", **config) && changed = true
+
+  if changed
+    File.write("project.json", JSON.pretty_generate(config[:config], indent: " " * 4))
+
+    PROJECTS.select { |f| File.basename(f) == "Rakefile" }.each do |file|
+      update_project(build_file: file)
+    end
+  end
+end
+
+def run_command(project:, rake: nil, gradle: nil)
+  puts "Project '#{File.dirname(project)}'"
+
+  Dir.chdir(File.dirname(project)) do
+    if rake && File.basename(project) == "Rakefile"
+      puts rake
+      system(rake, exception: true)
+    elsif gradle && File.basename(project) == "build.gradle"
+      puts gradle
+      system(gradle, exception: true)
+    end
+  end
+end
+
+def build_target(project:, rake: nil, gradle: nil, trace: nil)
+  run_command(
+    project: project,
+    rake: rake&.then { |t| "bundle exec rake #{t}#{trace ? " --trace" : ""}" },
+    gradle: gradle&.then { |t| "./gradlew #{t}#{trace ? " --stacktrace" : ""}" }
+  )
+end
+
+def get_latest_version(project:, access_token:)
+  url = URI("https://api.github.com/repos/#{project}/releases")
+  result = JSON.parse(url.read("Authorization" => "Bearer #{access_token}"))
+
+  result.map do |r|
+    v = r.fetch("tag_name").gsub(%r{^[a-z]+}, "").gsub("-", ".")
+    Gem::Version.new(v)
+  end.reject(&:prerelease?).max
+end
+
+def update_version(config:, project:, access_token:, suffix:)
+  project_name = project.split("/").last
+  latest_version = get_latest_version(project: project, access_token: access_token)
+
+  current_version = config[project_name]&.[]("version")&.[](%r{^\d+(?:\.\d+)+})&.then { |v| Gem::Version.new(v) }
+
+  if current_version.nil?
+    puts "Could not get latest version for #{project}"
+    false
+  elsif current_version < latest_version
+    puts "Updating #{project} to version #{latest_version}"
+    (config[project_name] ||= {})["version"] = "#{latest_version}#{suffix}"
+    true
+  else
+    puts "Keeping #{project} at current version #{latest_version}"
+    false
+  end
+end
+
+suffix = nil
+trace = nil
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename(__FILE__)} [options] command..."
+
+  opts.on("-s", "--suffix=SUFFIX", "Version suffix to add when updating versions") do |value|
+    suffix = value
+  end
+
+  opts.on("-t", "--trace", "Print stack trace on error") do |value|
+    suffix = value
+  end
+end.parse!
+
+PROJECTS.each do |project|
+  ARGV.each do |command|
+    case command
+      when "setup"
+        run_command(project: project, rake: "bundle install")
+      when "build"
+        build_target(project: project, rake: "build", gradle: "build", trace: trace)
+      when "install"
+        build_target(project: project, rake: "install:local", gradle: "publishToMavenLocal", trace: trace)
+      when "test"
+        build_target(project: project, rake: "test", gradle: "test", trace: trace)
+      when "clean"
+        build_target(project: project, rake: "clobber", gradle: "clean", trace: trace)
+      when "update_versions"
+        update_versions(suffix: suffix, trace: trace)
+      else
+        raise ArgumentError, "Unknown command '#{command}'"
+    end
+  end
+end
