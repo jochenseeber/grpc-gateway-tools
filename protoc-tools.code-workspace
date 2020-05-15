@@ -1,16 +1,37 @@
 {
 	"folders": [
 		{
+			"name": "protoc-tools Workspace",
 			"path": "."
+		},
+		{
+			"name": "java/protoc-grpc-gateway-options",
+			"path": "java/protoc-grpc-gateway-options"
+		},
+		{
+			"name": "ruby/protoc-grpc-gateway-options",
+			"path": "ruby/protoc-grpc-gateway-options"
+		},
+		{
+			"name": "ruby/protoc-grpc-gateway-plugins",
+			"path": "ruby/protoc-grpc-gateway-plugins"
+		},
+		{
+			"name": "ruby/protoc-tools",
+			"path": "ruby/protoc-tools"
+		},
+		{
+			"name": "ruby/examples/foo_service",
+			"path": "ruby/examples/foo_service"
 		}
 	],
 	"settings": {
 		"git.ignoreLimitWarning": true,
 		"ruby.useLanguageServer": true,
-		"ruby.useBundler": false,
+		"ruby.useBundler": true,
 		"ruby.lint": {
 			"rubocop": {
-				"useBundler": false
+				"useBundler": true
 			}
 		},
 		"protoc": {

@@ -1,0 +1,6 @@
+{
+    "files.exclude": {
+        "ruby/": true,
+        "java/": true
+    }
+}

@@ -1,0 +1,186 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/inline"
+
+require "json"
+require "open-uri"
+require "pathname"
+
+gemfile do
+  source "https://rubygems.org"
+  gem "clamp", "~> 1.3"
+end
+
+Project = Struct.new(:dir, :type, keyword_init: true) do
+  def dir=(dir)
+    @dir = Pathname(dir)
+  end
+
+  def execute(**commands)
+    command = commands[type]
+
+    if command
+      Dir.chdir(dir.to_s) do
+        puts Array(command).join(" ")
+        system(*command, exception: true)
+      end
+    end
+  end
+end
+
+PROJECTS = [
+  "java/protoc-grpc-gateway-options/build.gradle",
+  "ruby/protoc-tools/Rakefile",
+  "ruby/protoc-grpc-gateway-options/Rakefile",
+  "ruby/protoc-grpc-gateway-plugins/Rakefile",
+  Dir["ruby/examples/**/Rakefile"]
+].flatten.map do |f|
+  Project.new(dir: File.dirname(f), type: File.basename(f) == "Rakefile" ? :rake : :gradle)
+end.freeze
+
+# Run build tasks for all projects
+class BuildCommand < Clamp::Command
+  parameter "TASK ...", "Tasks to run", attribute_name: :tasks
+
+  Task = Struct.new(:name, :rake, :gradle, keyword_init: true) do
+    def run(project:)
+      project.execute(rake: rake, gradle: gradle)
+    end
+  end
+
+  TASKS = [
+    Task.new(name: "setup", rake: "bundle install"),
+    Task.new(name: "build", rake: "bundle exec rake build", gradle: "./gradlew build"),
+    Task.new(name: "install", rake: "bundle exec rake install:local", gradle: "./gradlew publishToMavenLocal"),
+    Task.new(name: "test", rake: "bundle exec rake test", gradle: "./gradlew test"),
+    Task.new(name: "clean", rake: "bundle exec rake clobber", gradle: "./gradlew clean")
+  ].to_h { |t| [t.name, t] }.freeze
+
+  def execute
+    projects = context.fetch(:projects)
+
+    projects.each do |project|
+      tasks.each do |task|
+        task.run(project: project)
+      end
+    end
+  end
+
+  def append_to_tasks(task)
+    (@tasks ||= []) << TASKS.fetch(task)
+  end
+end
+
+# Execute command for each project
+class ExecCommand < Clamp::Command
+  option ["-r", "--rake"], :flag, "Run command only for Rake projects"
+  option ["-g", "--gradle"], :flag, "Run command only for Gradle projects"
+
+  parameter "COMMAND ...", "Command to execute", attribute_name: :command
+
+  def execute
+    projects = context.fetch(:projects)
+    rake = rake? || !gradle?
+    gradle = gradle? || !rake?
+
+    projects.each do |project|
+      Dir.chdir(project.dirname.to_s) do
+        if rake && project.basename.to_s == "Rakefile" ||
+           gradle && project.basename.to_s == "build.gradle"
+          system(env(project: project), *command, exception: true)
+        end
+      end
+    end
+  end
+
+  protected
+
+  def env(project:)
+    {
+      "PROJECT_DIR" => project.dirname.to_s,
+      "PROJECT_FILE" => project.basename.to_s,
+      "PROJECT_TYPE" => project.basename.to_s == "Rakefile" ? "rake" : "gradle",
+    }
+  end
+end
+
+# Update bundled toos
+class UpdateBundledToolsCommand < Clamp::Command
+  option ["-s", "--suffix"], "SUFFIX", "Append prerelease suffix to versions"
+  option ["-t", "--access-token"], "TOKEN", "GitHub personal access token"
+
+  attr_accessor :changed
+
+  def execute
+    if access_token.nil?
+      puts "Please enter your Github personal access token:"
+      self.access_token = STDIN.gets.chomp
+    end
+
+    config = JSON.parse(File.read("project.json"))
+
+    update_version(config: config, project: "protocolbuffers/protobuf")
+    update_version(config: config, project: "grpc/grpc", use_suffix: false)
+    update_version(config: config, project: "grpc-ecosystem/grpc-gateway")
+
+    File.write("project.json", JSON.pretty_generate(config, indent: " " * 4)) if changed
+  end
+
+  protected
+
+  def get_latest_version(project:)
+    url = URI("https://api.github.com/repos/#{project}/releases")
+
+    headers = {}
+    headers["Authorization"] = "Bearer #{access_token}" unless access_token.empty?
+
+    result = JSON.parse(url.read(headers))
+
+    result.map do |r|
+      v = r.fetch("tag_name").gsub(%r{^[a-z]+}, "").gsub("-", ".")
+      Gem::Version.new(v)
+    end.reject(&:prerelease?).max
+  end
+
+  def update_version(config:, project:, use_suffix: true)
+    project_name = project.split("/").last
+
+    latest_version = get_latest_version(project: project)
+
+    current_version = config[project_name]&.[]("version")
+
+    updated_version = if current_version.nil?
+      "#{latest_version}#{use_suffix ? suffix : nil}"
+    elsif %r{^(?:\d+(?:\.\d+)+)(?<current_suffix>-.+)?$} =~ current_version
+      "#{latest_version}#{use_suffix ? (suffix || current_suffix) : nil}"
+    else
+      raise "Cannot parse version '#{current_version}'"
+    end
+
+    if updated_version != current_version
+      puts "Updating #{project} to version #{updated_version}"
+      (config[project_name] ||= {})["version"] = "#{latest_version}#{suffix}"
+      self.changed = true
+    else
+      puts "Keeping #{project} at current version #{updated_version}"
+    end
+  end
+end
+
+# Test GitHub actions locally
+class ActCommand < Clamp::Command
+  def execute
+    system("act", "-P", "ubuntu-18.04=nektos/act-environments-ubuntu:18.04", exception: true)
+  end
+end
+
+# Main command
+class MainCommand < Clamp::Command
+  subcommand "build", "Run build tasks", BuildCommand
+  subcommand "exec", "Execute command for each project", ExecCommand
+  subcommand "act", "Test GitHub actions locally", ActCommand
+  subcommand "update_bundled_tools", "Update bundled tools to newest versions", UpdateBundledToolsCommand
+end
+
+MainCommand.run(File.basename(__FILE__), ARGV, projects: PROJECTS)
