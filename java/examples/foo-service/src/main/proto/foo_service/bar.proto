@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package foo_service;
+
+// The Bar
+message Bar {
+  // Identifier of the Foo
+  int64 id = 1;
+
+  // Name
+  string name = 2;
+}

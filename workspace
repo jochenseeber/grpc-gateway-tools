@@ -34,7 +34,7 @@ PROJECTS = [
   "ruby/protoc-tools/Rakefile",
   "ruby/protoc-grpc-gateway-options/Rakefile",
   "ruby/protoc-grpc-gateway-plugins/Rakefile",
-  Dir["ruby/examples/**/Rakefile"]
+  Dir["{ruby,java}/examples/**/Rakefile"]
 ].flatten.map do |f|
   Project.new(dir: File.dirname(f), type: File.basename(f) == "Rakefile" ? :rake : :gradle)
 end.freeze

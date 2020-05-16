@@ -31,9 +31,11 @@ Install all RubyGems locally and install all Java libraries into the Maven repos
 
 ## Example
 
-* [Ruby example project][ruby-example] showing how to generate Swagger docs and GRPC Gateway code
+* [Ruby example project][ruby-example] showing how to generate Swagger docs and GRPC Gateway code with Ruby
+* [Java example project][java-example] showing how to generate Protobuf code with Java
 
 [ruby-example]: ruby/examples/foo_service/
+[java-example]: java/examples/foo-service/
 
 ## Licenses
 

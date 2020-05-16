@@ -1,0 +1,41 @@
+plugins {
+    id "com.google.protobuf" version "0.8.12"
+    id "java-library"
+    id "maven-publish"
+}
+
+Map<String, Object> metadata = new groovy.json.JsonSlurper().parse(new File(projectDir, "../../../project.json"))
+
+group = "me.seeber.grpc.gateway.examples"
+version = "1.0.0"
+
+def gatewayVersion = metadata["grpc-gateway"]["version"].replaceFirst("-pre\$", "-SNAPSHOT")
+def protobufVersion = metadata["protobuf"]["version"].replaceFirst("-pre\$", "-SNAPSHOT")
+def protobufRelease = protobufVersion.replaceFirst("-.+\$", "")
+
+repositories {
+    mavenLocal()
+    jcenter()
+}
+
+dependencies {
+    compileOnly "me.seeber.grpc.gateway:protoc-grpc-gateway-options:${gatewayVersion}"
+    implementation "com.google.protobuf:protobuf-java:${protobufRelease}"
+
+    testImplementation "junit:junit:4.12"
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufRelease}"
+    }
+}
+
+publishing {
+    publications {
+        myLibrary(MavenPublication) {
+            from components.java
+        }
+    }
+}
+

@@ -14,6 +14,7 @@ def gatewayVersion = metadata["grpc-gateway"]["version"].replaceFirst("-pre\$", 
 def protobufVersion = metadata["protobuf"]["version"].replaceFirst("-pre\$", "")
 
 repositories {
+    mavenLocal()
     jcenter()
 }
 

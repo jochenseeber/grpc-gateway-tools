@@ -23,6 +23,10 @@
 		{
 			"name": "ruby/examples/foo_service",
 			"path": "ruby/examples/foo_service"
+		},
+		{
+			"name": "java/examples/foo-service",
+			"path": "java/examples/foo-service"
 		}
 	],
 	"settings": {
