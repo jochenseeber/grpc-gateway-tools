@@ -1,4 +1,4 @@
-name: Run Tests
+name: Tests
 
 on:
   push:
@@ -26,3 +26,6 @@ jobs:
       - name: Test and install ruby/protoc-grpc-gateway-plugins
         run: bundle install --quiet && bundle exec rake test install:local
         working-directory: ruby/protoc-grpc-gateway-plugins
+      - name: Test ruby/examples/foo_service
+        run: bundle install --quiet && bundle exec rake test
+        working-directory: ruby/examples/foo_service
