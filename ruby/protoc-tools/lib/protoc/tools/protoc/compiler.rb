@@ -2,64 +2,17 @@
 
 require "docile"
 require "pathname"
-require "protoc/tools/standard_extensions"
+require "protoc/tools/core_extensions"
+require "protoc/tools/gem_extensions"
 
-using Protoc::Tools::StandardExtensions
+using Protoc::Tools::CoreExtensions
+using Protoc::Tools::GemExtensions
 
 module Protoc
   module Tools
     module Protoc
       # Protoc compiler
       class Compiler
-        # Output configuration
-        class Output
-          dsl_accessor :plugin, convert: :to_pathname
-          dsl_accessor :target_dir, convert: :to_pathname
-
-          def initialize(plugin: nil, target_dir: nil)
-            @plugin = plugin&.to_pathname
-            @target_dir = target_dir&.to_pathname
-          end
-
-          def to_arguments
-            ["--#{self.class.type}_out=#{@target_dir}"]
-          end
-        end
-
-        class << self
-          def output_class(type:, &block)
-            raise "Type must be a string" unless type.is_a?(String)
-            unless %r{^[a-z][-_a-z0-9]+$} =~ type
-              raise "Type must contain only letters 'a'-'z', digits '0'-'9', '-' and '_', and must start with a letter"
-            end
-
-            output_class = Class.new(Output, &block)
-            output_class.define_singleton_method(:type) do
-              type
-            end
-
-            @output_classes ||= {}
-            @output_classes[type] = output_class
-
-            method_name = :"#{type.gsub("-", "_")}_out".to_sym
-
-            Compiler.define_method(method_name) do |*method_parameters, **method_options, &method_block|
-              output_handler = if method_options.empty?
-                output_class.new(*method_parameters, &method_block)
-              else
-                output_class.new(*method_parameters, **method_options, &method_block)
-              end
-
-              Docile.dsl_eval(output_handler, &method_block) if method_block
-              output output_handler
-            end
-          end
-
-          def output_classes
-            @output_classes.dup.freeze
-          end
-        end
-
         dsl_accessor :dependency_dir, convert: :to_pathname
         dsl_accessor :descriptor_set_out, convert: :to_pathname
         dsl_accessor :error_format
@@ -71,6 +24,7 @@ module Protoc
         dsl_list_accessor :proto_dirs, :proto_dir, convert: :to_pathname
 
         def initialize(&block)
+          @output_classes = {}
           @plugins = []
           @outputs = []
           @descriptor_sets_in = []
@@ -114,7 +68,42 @@ module Protoc
           end
         end
 
+        def method_missing(method, *arguments, &block)
+          output_class = lookup_output_class(name: method)
+
+          if output_class
+            define_output_method(name: method, output_class: output_class)
+            send(method, *arguments, &block)
+          else
+            super
+          end
+        end
+
+        def respond_to_missing?(symbol, include_all)
+          lookup_output_class(name: symbol) ? true : super
+        end
+
         protected
+
+        def lookup_output_class(name:)
+          @output_classes.fetch(name) do
+            output_class = Output.descendants.find { |c| c.output_method_name == name }
+            @output_classes[name] = output_class if output_class
+          end
+        end
+
+        def define_output_method(name:, output_class:)
+          define_singleton_method(name) do |*method_parameters, **method_options, &method_block|
+            output_handler = if method_options.empty?
+              output_class.new(*method_parameters, &method_block)
+            else
+              output_class.new(*method_parameters, **method_options, &method_block)
+            end
+
+            Docile.dsl_eval(output_handler, &method_block) if method_block
+            @outputs << output_handler
+          end
+        end
 
         def dependency_out(proto_file:)
           dependency_dir&.then { |d| d / "#{proto_file}.d" }

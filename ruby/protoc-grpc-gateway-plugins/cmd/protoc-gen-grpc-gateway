@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require "protoc/tools/standard_extensions"
+require "protoc/tools/gem_extensions"
 
-using Protoc::Tools::StandardExtensions
+using Protoc::Tools::GemExtensions
 
 prog = Gem.platform_bin_name(name: "#{__dir__}/bundled/protoc-gen-grpc-gateway")
 exec(prog, *ARGV)

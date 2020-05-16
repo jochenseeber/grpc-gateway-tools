@@ -3,9 +3,9 @@
 
 $LOAD_PATH.append(File.join(__dir__), "lib")
 
-require "protoc/tools/standard_extensions"
+require "protoc/tools/core_extensions"
 
-using Protoc::Tools::StandardExtensions
+using Protoc::Tools::CoreExtensions
 
 prog = Gem.platform_bin_name(name: "#{__dir__}/bundled/protoc")
 exec(prog, *ARGV)

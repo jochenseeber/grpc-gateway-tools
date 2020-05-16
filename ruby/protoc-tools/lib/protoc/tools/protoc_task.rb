@@ -2,12 +2,13 @@
 
 require "docile"
 require "fileutils"
-require "protoc/tools/protoc/output/grpc_ruby_output"
-require "protoc/tools/protoc/output/ruby_output"
-require "protoc/tools/standard_extensions"
+require "protoc/tools/protoc/grpc_ruby_output"
+require "protoc/tools/protoc/ruby_output"
+require "protoc/tools/protoc/compiler"
+require "protoc/tools/core_extensions"
 require "rake/tasklib"
 
-using Protoc::Tools::StandardExtensions
+using Protoc::Tools::CoreExtensions
 
 module Protoc
   module Tools

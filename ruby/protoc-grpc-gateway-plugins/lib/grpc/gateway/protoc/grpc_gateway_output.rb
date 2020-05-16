@@ -1,16 +1,17 @@
 # frozen_string_literal: true
 
-require "protoc/tools/protoc/compiler"
-require "protoc/tools/standard_extensions"
+require "protoc/tools/protoc/output"
+require "protoc/tools/gem_extensions"
 
-using Protoc::Tools::StandardExtensions
+using Protoc::Tools::GemExtensions
 
 module Grpc
   module Gateway
-    # Protoc output classes
     module Protoc
-      # Swagger output
-      ::Protoc::Tools::Protoc::Compiler.output_class(type: "grpc-gateway") do
+      # GRPC Gateway output
+      class GrpcGatewayOutput < ::Protoc::Tools::Protoc::Output
+        protoc_output "grpc-gateway"
+
         def initialize
           super(target_dir: "generated/grpc_gateway")
         end

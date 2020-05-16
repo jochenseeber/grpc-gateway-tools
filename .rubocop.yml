@@ -34,13 +34,19 @@ Lint/Void:
     - "test/**/*"
 
 Metrics/AbcSize:
-  Max: 25
+  Max: 50
+
+Metrics/ClassLength:
+  Max: 200
 
 Metrics/CyclomaticComplexity:
   Max: 10
 
 Metrics/MethodLength:
-  Max: 20
+  Max: 30
+
+Metrics/ModuleLength:
+  Max: 200
 
 Metrics/PerceivedComplexity:
   Max: 10
